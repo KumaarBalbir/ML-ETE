@@ -8,6 +8,7 @@ import pandas as pd
 import dill
 from sklearn.metrics import r2_score
 from src.exception import CustomException
+from sklearn.model_selection import GridSearchCV
 
 
 def save_object(file_path, obj):
@@ -22,13 +23,21 @@ def save_object(file_path, obj):
         raise CustomException(e, sys)
 
 
-def evaluate_models(x_train, y_train, x_test, y_test, models):
+def evaluate_models(x_train, y_train, x_test, y_test, models, params):
     try:
         report = {}
 
         for i in range(len(list(models))):
             model = list(models.values())[i]
-            model.fit(x_train, y_train)  # Train model
+            # model.fit(x_train, y_train)  # Train model
+
+            # Hyper-Parameter Tuning
+            param = params[list(models.keys())[i]]
+            grid_search_model = GridSearchCV(model, param, cv=3)
+            grid_search_model.fit(x_train, y_train)
+
+            model.set_params(**grid_search_model.best_params_)
+            model.fit(x_train, y_train)
 
             y_train_pred = model.predict(x_train)
 
@@ -41,5 +50,5 @@ def evaluate_models(x_train, y_train, x_test, y_test, models):
             report[list(models.keys())[i]] = test_model_score
 
         return report
-    except:
-        pass
+    except Exception as e:
+        raise CustomException(e, sys)
